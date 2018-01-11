@@ -33,7 +33,7 @@ class FuelPrices:
 class Car(object):
     """Constructor"""
     all_cars = []
-    # Car initialization with all necessary params
+    # Car initialization with  params
 
     def __init__(self):
         self.name = "car - " + str(len(self.all_cars) + 1)
