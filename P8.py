@@ -1,207 +1,600 @@
-# -*- coding: utf-8 -*-
-# Created by Andrei Kisel
-from random import randint
+import random
 
 
 class Constants(object):
 
-    START_PRICE = 10000
+    class EngineType(object):
+        DIESEL = 'Diesel'
+        GASOLINE = 'Gasoline'
+        NEW_ENGINE_COST = 3000
 
-    GAS_MAX_OVERHAUL = 100000
-    GAS_OVERHAUL_VALUE = 500
-    GAS_AMORTIZATION = 9.5
-    GAS_FUEL_CONSUMPTION = 0.08
-    GAS_ENGINE_LIFETIME = 750000
+    class DiesCarParam(object):
 
-    DIESEL_MAX_OVERHAUL = 150000
-    DIESEL_OVERHAUL_VALUE = 700
-    DIESEL_AMORTIZATION = 10.5
-    DIESEL_FUEL_CONSUMPTION = 0.06
-    DIESEL_ENGINE_LIFETIME = 650000
+        CONSUMPTION = 6
+        COST_OF_GAS = 1.8
+        AMORTISATION = 10.5
+        KMS_TILL_REPAIR = 150000
+        COST_OF_REPAIR = 700
 
-    GAS = 2.4
-    DIESEL = 2.4
-    ENGINE_REPLACING_COST = 3000.0
+    class GasCarParam(object):
 
-class FuelPrices:
+        CONSUMPTION = 8
+        COST_OF_GAS_95 = 2.4
+        COST_OF_GAS_92 = 2.2
+        AMORTISATION = 9.5
+        KMS_TILL_REPAIR = 100000
+        COST_OF_REPAIR = 500
+        FUEL_CHANGE = 50000
 
-    AI_92 = 2.2
-    AI_95 = 2.5
-    DIESEL = 2.4
+    class CommonCarParam(object):
 
-
-class Car(object):
-    """Constructor"""
-    all_cars = []
-    # Car initialization with  params
-
-    def __init__(self):
-        self.name = "car - " + str(len(self.all_cars) + 1)
-        # Selection eng type
-        if not (len(self.all_cars) + 1) % 3:
-            self.eng_type = "diesel"
-            self.fuel_consumption = Constants.DIESEL_FUEL_CONSUMPTION
-            self.fuel_price = Constants.DIESEL
-            self.amortization = Constants.DIESEL_AMORTIZATION
-            self.mileage_to_overhaul = Constants.DIESEL_MAX_OVERHAUL
-            self.overhaul_price = Constants.DIESEL_OVERHAUL_VALUE
-        else:
-            self.eng_type = "gas"
-            self.fuel_consumption = Constants.GAS_FUEL_CONSUMPTION
-            self.fuel_price = Constants.GAS
-            self.amortization = Constants.GAS_AMORTIZATION
-            self.mileage_to_overhaul = Constants.GAS_MAX_OVERHAUL
-            self.overhaul_price = Constants.GAS_OVERHAUL_VALUE
-        # Selection fuel tank
-        if not (len(self.all_cars) + 1) % 5:
-            self.gas_tank_volume = 70
-        else:
-            self.gas_tank_volume = 60.0
-        # Selection price
-        self.price = Constants.START_PRICE
-        # Divisor - average price of 1 km of run.
-        self.mileage_to_util = self.mileage_to_utilisation()
-        self.__mileage = 0
-        # Random route for every car
-        self.route = randint(56000, 286000)
-        self.route_price = 0
-        self.number_of_fueling = 0
-        # Value fuel tank
-        self.current_fuel_volume = self.gas_tank_volume
-        self.all_cars.append(self)
-
-    # Method for run
-    def run(self):
-        for _ in range(self.route):
-            self.__mileage += 1
-            self.current_fuel_volume -= self.fuel_consumption
-            # Check
-            if self.current_fuel_volume < self.fuel_consumption:
-                self.route_price += self.gas_tank_volume * self.fuel_price
-                self.current_fuel_volume = self.gas_tank_volume
-                self.number_of_fueling += 1
-            # Change parameters every 1000 km
-            if not self.__mileage % 1000:
-                self.price = round(self.price - self.amortization, 2)
-            # Add overhaul price to route price
-            if not self.__mileage % self.mileage_to_overhaul:
-                self.route_price += self.overhaul_price
+        COST = 10000
+        CONS_INCREMENT = 0.01
+        TACHOGRAPH = 0
 
 
- # Methods for car state
+    class CarTanks(object):
 
-    def mileage_to_utilisation(self):
-        mileage = 0
-        price = self.price
-        while price > 0:
-            mileage += 1000
-            if not mileage % 1000:
-                price -= self.amortization
-            if not mileage % self.mileage_to_overhaul:
-                price -= self.overhaul_price
-        return mileage
-
-    def mileage(self):
-        return self.__mileage
-
-    def residual_value(self):
-        return self.price
-
-    def fuelings(self):
-        return self.number_of_fueling
-
-    def fuel_price_for_route(self):
-        return self.number_of_fueling * (self.fuel_price * self.gas_tank_volume)
-
-    def route_to_utilization(self):
-        return self.mileage_to_util - self.__mileage
-
-    # Class with final info
+        COMMON_TANK = 60
+        CUSTOM_TANK = 75
 
 
-class Engine(object):
-    # List of all engines divided by type; 0 - diesel, 1 - gas
-    all_engines = [[], []]
-    # List of reclaimed engines
-    reclaimed_engines = []
+    class CarParkConst(object):
 
-    def __init__(self, fuel_type, is_on_car=None):
-        self.fuel_type = fuel_type
-        self.is_on_car = is_on_car
-        self.mileage = 0
-        self.price = Constants.ENGINE_REPLACING_COST
-        if fuel_type == "diesel":
-            self.engine_number = "diesel_" + str(len(self.all_engines[0]) + 1)
-            self.all_engines[0].append(self)
-            self.engine_lifetime = Constants.DIESEL_ENGINE_LIFETIME
-            self.fuel_consumption = Constants.DIESEL_FUEL_CONSUMPTION
-        elif fuel_type == "gas":
-            self.engine_number = "gas_" + str(len(self.all_engines[1]) + 1)
-            self.all_engines[1].append(self)
-            self.engine_lifetime = Constants.GAS_ENGINE_LIFETIME
-            self.fuel_consumption = Constants.GAS_FUEL_CONSUMPTION
-        # Change of fuel consumption every 1000 km
-        self.fuel_consumption_delta = self.fuel_consumption * 0.01
-        if not self.mileage % 1000:
-            self.fuel_consumption += self.fuel_consumption_delta
+        DEF_CARS_QUANTITY = 0
+        PLACES = 500
+        LIST_OF_CARS = None
+        TOTAL_COST = 0
+        TOTAL_CREDIT = 0
+        DIESEL_CARS = None
+        GASOLINE_CARS = None
+        SORTED_GASOLINE = None
+        SORTED_DIESEL = None
+
+
+
+    class RaceConst(object):
+
+        LENGTH = 0
+        GAS_COST_TOTAL = 0
+        QUANTITY_OF_GAS_RES = 0
+        TOTAL_REPAIR_COST = 0
+
+
+
+
+
+class GasolineCar(object):
+
+    # Class ancestor of Car class creates gasoline cars
+
+    def __init__(self,
+
+                 engine_kind=Constants.EngineType.GASOLINE,
+
+                 gas_consumption=Constants.GasCarParam.CONSUMPTION,
+
+                 gas_cost=Constants.GasCarParam.COST_OF_GAS_92,
+
+                 amortisation=Constants.GasCarParam.AMORTISATION,
+
+                 km_till_rep=Constants.GasCarParam.KMS_TILL_REPAIR,
+
+                 repair=Constants.GasCarParam.COST_OF_REPAIR):
+
+        self.engine_kind = engine_kind
+
+        self.gas_consumption = gas_consumption
+
+        self.gas_cost = gas_cost
+
+        self.amortisation = amortisation
+
+        self.km_till_rep = km_till_rep
+
+        self.repair = repair
+
+
+
+
+
+class DieselCar(object):
+
+    # Class ancestor of Car class creates diesel cars
+
+    def __init__(self,
+
+                 engine_kind=Constants.EngineType.DIESEL,
+
+                 gas_consumption=Constants.DiesCarParam.CONSUMPTION,
+
+                 gas_cost=Constants.DiesCarParam.COST_OF_GAS,
+
+                 amortisation=Constants.DiesCarParam.AMORTISATION,
+
+                 km_till_rep=Constants.DiesCarParam.KMS_TILL_REPAIR,
+
+                 repair=Constants.DiesCarParam.COST_OF_REPAIR):
+
+        self.engine_kind = engine_kind
+
+        self.gas_consumption = gas_consumption
+
+        self.gas_cost = gas_cost
+
+        self.amortisation = amortisation
+
+        self.km_till_rep = km_till_rep
+
+        self.repair = repair
+
+
+
+
+
+class Car(GasolineCar, DieselCar):
+
+    # Car - main class inheritor for all machines, car_quantity allows to know how many cars were created
+
+    car_quantity = 1
+
+
+
+    def __init__(self,
+
+                 gas_tank=Constants.CarTanks.COMMON_TANK,
+
+                 cost=Constants.CommonCarParam.COST,
+
+                 consumption_increment=Constants.CommonCarParam.CONS_INCREMENT,
+
+                 tachograph=Constants.CommonCarParam.TACHOGRAPH,
+
+                 engine_kind=Constants.EngineType.GASOLINE,
+
+                 gas_consumption=Constants.GasCarParam.CONSUMPTION,
+
+                 gas_cost=Constants.GasCarParam.COST_OF_GAS_92,
+
+                 amortisation=Constants.GasCarParam.AMORTISATION,
+
+                 km_till_rep=Constants.GasCarParam.KMS_TILL_REPAIR,
+
+                 repair=Constants.GasCarParam.COST_OF_REPAIR):
+
+        # Construction of Car
+
+        super(Car, self).__init__(engine_kind,
+
+                                  gas_consumption,
+
+                                  gas_cost,
+
+                                  amortisation,
+
+                                  km_till_rep,
+
+                                  repair)
+
+        self.gas_tank = gas_tank
+
+        self.cost = cost
+
+        self.consumption_increment = consumption_increment
+
+        self._tachograph = tachograph
+
+        self.tank_custom()
+
+        self.diesel_car()
+
+        Car.car_quantity += 1
+
+
+
+    def tank_custom(self):
+
+        # Method for change volume of gasoline tank for every 5 car
+
+        if Car.car_quantity % 5 == 0:
+
+            self.gas_tank = Constants.CarTanks.CUSTOM_TANK
+
+
+
+    def diesel_car(self):
+
+        # Method which initialize creation of the diesel car
+
+        if Car.car_quantity % 3 == 0:
+
+            DieselCar.__init__(self)
+
+
+
+    def ride(self, kilometres):
+
+        assert kilometres > 0
+
+        self._tachograph = kilometres
+
+
 
     @property
-    def current_fuel_price(self):
-        if self.fuel_type == "gas":
-            if self.mileage < 50000:
-                self.fuel_price = FuelPrices.AI_92
+
+    def tachograph(self):
+
+        return self._tachograph
+
+
+
+
+
+class Race(object):
+
+    # Class Race makes all actions which happens with car during race.
+
+    lock_var = 0
+
+
+
+    def __init__(self,
+
+                 length=Constants.RaceConst.LENGTH,
+
+                 gas_cost_total=Constants.RaceConst.GAS_COST_TOTAL,
+
+                 quantity_of_gas_res=Constants.RaceConst.QUANTITY_OF_GAS_RES,
+
+                 total_rep_cost=Constants.RaceConst.TOTAL_REPAIR_COST):
+
+        self.length = length
+
+        self.gas_cost_total = gas_cost_total
+
+        self.quantity_of_gas_res = quantity_of_gas_res
+
+        self.total_rep_cost = total_rep_cost
+
+
+
+    def actions_with_car(self, car):
+
+        # Returns results of all changes with car
+
+        self.random_route()
+
+        for step in range(0, self.length, 100):
+
+            if car.cost < 0 and Race.lock_var == 0:
+
+                self.engine_change(car)
+
+                Race.lock_var += 1
+
+            self.gas_restore(car, step)
+
+            self.amortisation(car, step)
+
+            self.repair_car(car, step)
+
+
+
+    def random_route(self):
+
+        # Creates random route for car
+
+        self.length = random.randint(55000, 286000)
+
+        return self.length
+
+
+
+    def gas_restore(self, car, step):
+
+        # Returns how many time car was fueled and quantity of refuels
+
+        if step >= Constants.GasCarParam.FUEL_CHANGE and car.engine_kind == 'Gasoline':
+
+            car.gas_cost = Constants.GasCarParam.COST_OF_GAS_95
+
+        if step != 0 and step % 1000 == 0:
+
+            car.gas_consumption = self.consumption_increment(car)
+
+            car.ride(step)
+
+        car.gas_tank -= car.gas_consumption
+
+        if car.gas_tank <= 0:
+
+            self.quantity_of_gas_res += 1
+
+            self.gas_cost_total += car.gas_cost
+
+            car.cost -= car.gas_cost
+
+
+
+    @staticmethod
+
+    def amortisation(car, step):
+
+        # Returns cost of car after race
+
+        if step != 0 and step % 1000 == 0:
+
+            car.cost -= car.amortisation
+
+        return car.cost
+
+
+
+    @staticmethod
+
+    def consumption_increment(car):
+
+        # Returns new consumption of gasoline after race
+
+        car.gas_consumption += car.gas_consumption * car.consumption_increment
+
+        return car.gas_consumption
+
+
+
+    @staticmethod
+
+    def km_till_destroy(car):
+
+        # Returns how many km car can make till utilisation
+
+        if car.cost >= 0:
+
+            cost_of_before = 0
+
+            natural_amortisation = 1000 / (car.amortisation + 10 * car.gas_cost)
+
+            kms_destroy = car.cost * natural_amortisation
+
+            rep_decrement = kms_destroy // car.km_till_rep
+
+            cost_of_before = car.cost - rep_decrement * car.repair
+
+            kms_destroy = int(cost_of_before * natural_amortisation)
+
+        else:
+
+            kms_destroy = "Warning! Residual cost of your car is negative. " \
+                          "Factory can\'t warrant when your car will be out of work!"
+
+        return kms_destroy
+
+
+
+    def repair_car(self, car, step):
+
+        # Returns cost of repair
+
+        if step != 0 and step % car.km_till_rep == 0:
+
+            self.total_rep_cost += car.repair
+
+            car.cost -= car.repair
+
+
+
+    @staticmethod
+
+    def engine_change(car):
+
+        # Changes broken engine on new resets fuel type for gasoline cars
+
+        car.cost -= Constants.EngineType.NEW_ENGINE_COST
+
+        if car.engine_kind == 'Gasoline':
+
+            car.gas_cost = Constants.GasCarParam.COST_OF_GAS_92
+
+
+
+
+
+class CarPark(object):
+
+    # Class CarPark
+
+    def __init__(self,
+
+                 create_cars=Constants.CarParkConst.DEF_CARS_QUANTITY,
+
+                 places=Constants.CarParkConst.PLACES,
+
+                 list_of_cars=Constants.CarParkConst.LIST_OF_CARS,
+
+                 total_cost=Constants.CarParkConst.TOTAL_COST,
+
+                 total_credit=Constants.CarParkConst.TOTAL_CREDIT,
+
+                 diesel_cars=Constants.CarParkConst.DIESEL_CARS,
+
+                 gasoline_cars=Constants.CarParkConst.GASOLINE_CARS,
+
+                 sorted_gasoline=Constants.CarParkConst.SORTED_GASOLINE,
+
+                 sorted_diesel=Constants.CarParkConst.SORTED_DIESEL):
+
+        self.places = places
+
+        self.create_cars = create_cars
+
+        self.list_of_cars = list_of_cars
+
+        self.total_cost = total_cost
+
+        self.diesel_cars = diesel_cars
+
+        self.gasoline_cars = gasoline_cars
+
+        self.sorted_gasoline = sorted_gasoline
+
+        self.sorted_diesel = sorted_diesel
+
+        self.total_credit = total_credit
+
+
+
+    def fill_car_park(self):
+
+        # Fills park by cars
+
+        self.list_of_cars = []
+
+        for _ in range(self.create_cars):
+
+            self.list_of_cars.append(Car())
+
+        self.places -= len(self.list_of_cars)
+
+
+
+    def car_statistic(self):
+
+        # Returns stats of cars in park
+
+        for car in self.list_of_cars:
+
+            route = Race()
+
+            route.actions_with_car(car)
+
+            print ("Since creation car has made: {} km." \
+                  "\nNow cost of car is: {}." \
+                  "\nSince creation quantity of refuels: {}." \
+                  "\nTotal cost of fuel: {}." \
+                  "\nFull utilisation of car happens in: {}." \
+                  "\nTotal cost of repairs: {}.\n" \
+                  .format(route.length, car.cost,
+
+                        route.quantity_of_gas_res,
+
+                        route.gas_cost_total,
+
+                        route.km_till_destroy(car),
+
+                        route.total_rep_cost))
+
+
+
+    def list_creation_gas(self):
+
+        # Creates dicts of results for gasoline cars
+
+        self.gasoline_cars = [Race().km_till_destroy(car) for car in self.list_of_cars
+
+                              if car.engine_kind == 'Gasoline']
+
+
+
+    def list_creation_dies(self):
+
+        # Creates dicts of results for diesel cars
+
+        self.diesel_cars = [car.cost for car in self.list_of_cars if car.engine_kind == 'Diesel']
+
+
+
+    def sorting_of_list_gas(self):
+
+        # Sorts results for gasoline cars
+
+        self.list_creation_gas()
+
+        self.sorted_gasoline = sorted(self.gasoline_cars, reverse=True)
+
+
+
+    def sorting_of_list_dies(self):
+
+        # Sorts results for diesel cars
+
+        self.list_creation_dies()
+
+        self.sorted_diesel = sorted(self.diesel_cars, reverse=True)
+
+
+
+    def printing_sorted_res_gas_cars(self):
+
+        # Returns results of sorting of gasoline cars
+
+        self.sorting_of_list_gas()
+
+        for element in self.sorted_gasoline:
+
+            print ("KMs left till utilisation: {}".format(element))
+
+
+
+    def printing_sorted_res_dies_cars(self):
+
+        # Returns results of sorting of diesel cars
+
+        self.sorting_of_list_dies()
+
+        for element in self.sorted_diesel:
+
+            if element > 0:
+
+                print ("Cost of car: {}".format(element))
+
             else:
-                self.fuel_price = FuelPrices.AI_95
-        else:
-            self.fuel_price = FuelPrices.DIESEL
-        return self.fuel_price
 
-    # Calculation of engine conditions in %
-
-    @property
-    def engine_condition(self):
-        return 100 - (self.mileage/self.engine_lifetime) * 100
+                print ("Credit of car: {}".format(abs(element)))
 
 
-class RezSort(object):
 
-    # Method for sorting
-    def mysort(self, list_of_cars):
-        diesel_cars = []
-        gas_cars = []
-        dies_names = []
-        gas_names = []
-        for i in list_of_cars:
-            if i.eng_type == "diesel":
-                diesel_cars.append(i)
-            elif i.eng_type == "gas":
-                gas_cars.append(i)
-        diesel_cars = sorted(diesel_cars, key=lambda car: car.price)
-        gas_cars = sorted(gas_cars, key=lambda car: car.route_to_utilization())
-        for i in diesel_cars:
-            dies_names.append("{}: {}".format(i.name, i.route_to_utilization()))
-        for i in gas_cars:
-            gas_names.append("{}: {}".format(i.name, i.price))
-        return dies_names, gas_names
+    def total_car_cos(self):
 
-    def full_price(self, list_of_cars):
-        price = 0.0
-        for _ in list_of_cars:
-            price += _.price
-        return price
+        # Returns total cost of cars in the park
+
+        for car in self.list_of_cars:
+
+            if car.cost > 0:
+
+                self.total_cost += car.cost
+
+            else:
+
+                self.total_credit += abs(car.cost)
+
+        print ("\nAt the moment total cost of cars is equal to {}." \
+              "\nTotal credit for your cars is equal to {}. ".format(self.total_cost, self.total_credit))
 
 
-for i in range(10):
-    Car()
 
-for car in Car.all_cars:
-    print("\033[96mname\033[0m:\033[94m{}'\033[0m; \033[96mengine type\033[0m: \033[94m{}\033[0m; "
-          "\033[96mtank volume\033[0m: \033[94m{}\033[0m; \033[96mprice\033[0m: \033[94m{}\033[0m;"
-          " \033[96mroute\033[0m: \033[94m{}\033[0m.".format(car.name, car.eng_type, car.gas_tank_volume,
-                                                             car.price, car.route))
-    car.run()
+    def car_park_stat(self):
+
+        # Returns quantity of empty places in the park and how many cars are already in park
+
+        print ("\nAt the moment park contains {} cars.\nEmpty places {}".format(self.create_cars, self.places))
 
 
-info = RezSort()
-print("\033[31mSorted cars\033[0m:", info.mysort(Car.all_cars))
-print("\033[32mTotal cost of cars after the run\033[0m:", info.full_price(Car.all_cars))
+
+
+
+if __name__ == '__main__':
+
+    MinskTaxi = CarPark(10)
+
+    MinskTaxi.fill_car_park()
+
+    MinskTaxi.car_statistic()
+
+    MinskTaxi.printing_sorted_res_gas_cars()
+
+    MinskTaxi.printing_sorted_res_dies_cars()
+
+    MinskTaxi.total_car_cos()
+
+    MinskTaxi.car_park_stat()
+
